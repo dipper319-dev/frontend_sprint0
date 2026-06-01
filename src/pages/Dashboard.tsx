@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Edit2,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -77,18 +78,15 @@ export default function Dashboard() {
       try {
         setLoading(true);
 
-        // ✨ NUEVO: Obtener ingresos del backend
         const incomes = await getIncomesFromBackend();
         const incomesTotal = getTotal(incomes);
         setTotalIncome(incomesTotal);
 
-        // Obtener balance desde el backend (gastos)
         const balance = await getBalanceFromBackend();
         
         if (balance) {
           setTotalExpenses(balance.totalGastos);
           
-          // Cargar presupuesto desde backend, con fallback a localStorage
           const budgetFromBackend = await getBudgetFromBackend();
           const budget = budgetFromBackend != null ? budgetFromBackend : getMonthlyBudget();
           setMonthlyBudget(budget);
@@ -98,12 +96,9 @@ export default function Dashboard() {
           else if (usedPercentage > 80) setAlertType("preventive");
         }
 
-        // Obtener gastos del backend para categorías
         const expenses = await getExpensesFromBackend();
         const cats = getCategories();
         setCategories(cats);
-        
-        // ✨ HU009: Guardar gastos para listado y edición
         setGastos(expenses as GastoType[]);
         
         const expenseTotal = getTotal(expenses);
@@ -169,11 +164,9 @@ export default function Dashboard() {
       toast.success("Gasto editado correctamente");
       setEditandoId(null);
       
-      // Recargar gastos
       const expenses = await getExpensesFromBackend();
       setGastos(expenses as GastoType[]);
       
-      // Recargar balance
       const balance = await getBalanceFromBackend();
       if (balance) {
         setTotalExpenses(balance.totalGastos);
@@ -194,11 +187,8 @@ export default function Dashboard() {
     try {
       await eliminarGasto(Number(id));
       toast.success("Gasto eliminado correctamente");
-      
-      // Recargar gastos
       setGastos(gastos.filter(g => g.id !== id));
       
-      // Recargar balance
       const balance = await getBalanceFromBackend();
       if (balance) {
         setTotalExpenses(balance.totalGastos);
@@ -239,6 +229,7 @@ export default function Dashboard() {
         </Button>
       </header>
 
+      {/* Alerta presupuesto */}
       <Dialog open={!!alertType} onOpenChange={(open) => !open && setAlertType(null)}>
         <DialogContent className="max-w-sm rounded-lg border-border bg-card">
           <DialogHeader>
@@ -350,8 +341,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Balances financieros */}
-        <Card className="shadow-card">
+        {/* Balances financieros — navega a /balance */}
+        <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => navigate("/balance")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign size={16} className="text-primary" />
@@ -365,8 +356,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Transacciones por categorías */}
-        <Card className="shadow-card">
+        {/* Transacciones por categorías — navega a /history */}
+        <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => navigate("/history")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <PieChart size={16} className="text-primary" />
@@ -375,7 +366,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              {/* Simple pie chart representation */}
               <div className="relative w-24 h-24 flex-shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                   {categoryData.reduce((acc, cat, i) => {
@@ -421,7 +411,6 @@ export default function Dashboard() {
                 <span className="text-lg font-bold text-income">{formatCurrency(totalIncome)}</span>
               </CardContent>
             </Card>
-            {/* ✨ HU009: Card de gastos muestra datos y permite ver listado */}
             <Card 
               className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" 
               onClick={() => setMostrarListadoGastos(!mostrarListadoGastos)}
@@ -437,7 +426,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ✨ HU009: Listado de gastos con editar/eliminar */}
+        {/* HU009: Listado de gastos con editar/eliminar */}
         {mostrarListadoGastos && (
           <Card className="shadow-card">
             <CardHeader>
@@ -487,25 +476,37 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Reportes & Recomendaciones */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow">
-            <CardContent className="flex flex-col items-center gap-2 py-5">
-              <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                <FileText size={24} className="text-info" />
+        {/* Reportes, Recomendaciones & Categorías */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => navigate("/reports")}>
+            <CardContent className="flex flex-col items-center gap-2 py-5 px-2">
+              <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center">
+                <FileText size={22} className="text-info" />
               </div>
-              <span className="text-sm font-medium text-foreground">Reportes</span>
+              <span className="text-xs font-medium text-foreground text-center">Reportes</span>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => navigate("/recommendations")}>
+            <CardContent className="flex flex-col items-center gap-2 py-5 px-2">
+              <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center">
+                <Lightbulb size={22} className="text-primary" />
+              </div>
+              <span className="text-xs font-medium text-foreground text-center">Recomendaciones</span>
             </CardContent>
           </Card>
           <Card className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => navigate("/categories")}>
-            <CardContent className="flex flex-col items-center gap-2 py-5">
-              <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                <Tags size={24} className="text-warning" />
+            <CardContent className="flex flex-col items-center gap-2 py-5 px-2">
+              <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center">
+                <Tags size={22} className="text-warning" />
               </div>
-              <span className="text-sm font-medium text-foreground">Categorías</span>
+              <span className="text-xs font-medium text-foreground text-center">Categorías</span>
             </CardContent>
           </Card>
         </div>
+
+        <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/edit-record")}>
+          <Pencil size={18} /> Editar o eliminar registros
+        </Button>
 
         <Button variant="ghost" className="w-full gap-2" onClick={() => navigate("/budget")}>
           <Settings size={18} /> Ajustar presupuesto mensual
